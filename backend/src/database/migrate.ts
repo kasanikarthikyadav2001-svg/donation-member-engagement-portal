@@ -1,4 +1,5 @@
 import type {Database} from './index.js';
+import {isDeepStrictEqual} from 'node:util';
 const str={bsonType:'string'},date={bsonType:'date'};
 const state=(...x:string[])=>({enum:x});
 export async function migrate(db:Database) {
@@ -17,7 +18,13 @@ export async function migrate(db:Database) {
  };
  for(const [name,schema] of Object.entries(schemas)) {
   const validator={$jsonSchema:{bsonType:'object',...schema}};
-  try{await db.native.createCollection(name,{validator});}catch(e:any){if(e.code!==48)throw e;await db.native.command({collMod:name,validator,validationLevel:'strict',validationAction:'error'});}
+  const existing=await db.native.listCollections({name}).next();
+  if(!existing) {
+   try{await db.native.createCollection(name,{validator});}catch(e:any){if(e.code!==48)throw e;}
+  } else if(!isDeepStrictEqual('options' in existing ? existing.options?.validator : undefined,validator)) {
+   // Altering an existing contract requires a separate dbAdmin release identity.
+   await db.native.command({collMod:name,validator,validationLevel:'strict',validationAction:'error'});
+  }
   if(!['sessions','resetTokens','rateLimits','schemaVersions'].includes(name))await db.collection(name).createIndex({id:1},{unique:true});
  }
  for(const name of ['users','profiles'])await db.collection(name).createIndex({email:1},{unique:true});

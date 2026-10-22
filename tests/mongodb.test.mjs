@@ -8,6 +8,7 @@ import {createApp} from '../backend/dist/app.js';
 import {hashPassword,hashToken} from '../backend/dist/utils/security.js';
 import {claimEmailJob,completeEmailJob} from '../backend/dist/services/email.js';
 import {handleWebhook} from '../backend/dist/routes/donations.js';
+import {ensureAdministrator} from '../backend/dist/database/bootstrap.js';
 const db=createDatabase(process.env.TEST_MONGODB_URI,'dmep_storage_test_'+randomUUID().replaceAll('-',''));
 let app,uid,pid,agent,csrf;
 before(async()=>{
@@ -59,4 +60,15 @@ test('expired recovery tokens fail and a valid reset token is consumed once',asy
  const reset=token=>request(app).post('/api/auth/reset-password').send({token,password:'NewStoragePassword123!'});
  assert.equal((await reset('e'.repeat(64))).status,400);
  const results=await Promise.all([reset('v'.repeat(64)),reset('v'.repeat(64))]);assert.deepEqual(results.map(r=>r.status).sort(),[200,400]);
+});
+test('cloud bootstrap creates one administrator and never resets credentials on restart',async()=>{
+ const saved={ADMIN_EMAIL:process.env.ADMIN_EMAIL,ADMIN_PASSWORD:process.env.ADMIN_PASSWORD,ADMIN_NAME:process.env.ADMIN_NAME};
+ try{
+  process.env.ADMIN_EMAIL='cloud-admin@example.org';process.env.ADMIN_PASSWORD='CloudAdminPassword123!';process.env.ADMIN_NAME='Kartheek';
+  const results=await Promise.all([ensureAdministrator(db),ensureAdministrator(db)]);
+  assert.equal(results.filter(Boolean).length,1);assert.equal(await db.count('users',{role:'admin'}),1);
+  const original=await db.one('users',{email:'cloud-admin@example.org'});assert.equal(original.name,'Kartheek');
+  process.env.ADMIN_PASSWORD='ChangedEnvironmentPassword123!';assert.equal(await ensureAdministrator(db),false);
+  assert.equal((await db.one('users',{id:original.id})).password_hash,original.password_hash);
+ }finally{for(const [key,value] of Object.entries(saved)){if(value===undefined)delete process.env[key];else process.env[key]=value;}}
 });

@@ -82,6 +82,8 @@ Push source files, package manifests and the lockfile. `.gitignore` excludes cre
 
 ## Production deployment
 
+For a free testing deployment with an included HTTPS hostname, follow [the Render and MongoDB Atlas guide](docs/free-deployment.md). The repository includes a free-plan `render.yaml` Blueprint and a cloud startup command that creates the first administrator without demo seeding.
+
 Use a maintained MongoDB Atlas cluster or secured replica set with authentication, restricted network access, TLS and tested backups. Create a database identity with only the permissions needed by the application; run collection and index setup using a separate release identity when necessary.
 
 Configure NODE_ENV=production, MONGODB_URI, MONGODB_DATABASE, an HTTPS APP_URL and ALLOW_SANDBOX_PAYMENTS=false. Keep secrets in the hosting provider's environment configuration. Build the supplied Dockerfile or run a locked install and `npm run build`. Execute `node backend/dist/database/cli.js migrate` before traffic, then start `node backend/dist/server.js`. The production application does not automatically migrate or seed data.

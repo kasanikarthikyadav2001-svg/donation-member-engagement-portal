@@ -10,7 +10,7 @@ dotenv.config({ path: path.join(base, ".env"), quiet: true });
 export const config = {
   production: process.env.NODE_ENV === "production",
   port: Number(process.env.PORT || 4000),
-  origin: process.env.APP_URL || "http://127.0.0.1:5173",
+  origin: process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || "http://127.0.0.1:5173",
   mongoUri: process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/?replicaSet=rs0",
   mongoDatabase: process.env.MONGODB_DATABASE || "dmep",
   sessionHours: 12,
