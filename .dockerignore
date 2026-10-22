@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+.env
+.env.*
+!.env.example
+**/dist
+backend/data
+backend/data-preview
+backend/data-mongo
+backend/.mongo-binaries
+backend/data-postgres-backup
+backend/legacy-export*.json
+test-results
+playwright-report
+.git
+*.zip

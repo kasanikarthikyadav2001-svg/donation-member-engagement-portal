@@ -1,0 +1,39 @@
+{
+  "name": "@dmep/backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "db:migrate": "tsx src/database/cli.ts migrate",
+    "db:seed": "tsx src/database/cli.ts seed"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "nodemailer": "^10.0.12",
+    "pdfkit": "^0.17.2",
+    "pino": "^9.9.0",
+    "pino-http": "^10.5.0",
+    "stripe": "^18.5.0",
+    "zod": "^3.25.0",
+    "mongodb": "^6.21.0"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.18.0",
+    "@types/nodemailer": "^6.4.19",
+    "@types/pdfkit": "^0.17.3",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

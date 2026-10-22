@@ -1,0 +1,31 @@
+services:
+  migrate:
+    build: .
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: ${MONGODB_URI:?Set a secured replica set or Atlas URI}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-dmep}
+      APP_URL: ${APP_URL:?Set HTTPS APP_URL}
+      ALLOW_SANDBOX_PAYMENTS: "false"
+    command: ["node", "backend/dist/database/cli.js", "migrate"]
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      MONGODB_URI: ${MONGODB_URI:?Set a secured replica set or Atlas URI}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-dmep}
+      APP_URL: ${APP_URL:?Set HTTPS APP_URL}
+      ALLOW_SANDBOX_PAYMENTS: "false"
+      TRUST_PROXY: "1"
+    ports: ["127.0.0.1:4000:4000"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
