@@ -9,6 +9,8 @@ import {hashPassword,hashToken} from '../backend/dist/utils/security.js';
 import {claimEmailJob,completeEmailJob} from '../backend/dist/services/email.js';
 import {handleWebhook} from '../backend/dist/routes/donations.js';
 import {ensureAdministrator} from '../backend/dist/database/bootstrap.js';
+import {resetAdministratorPassword} from '../backend/dist/services/adminRecovery.js';
+import {checkPassword} from '../backend/dist/utils/security.js';
 const db=createDatabase(process.env.TEST_MONGODB_URI,'dmep_storage_test_'+randomUUID().replaceAll('-',''));
 let app,uid,pid,agent,csrf;
 before(async()=>{
@@ -71,4 +73,20 @@ test('cloud bootstrap creates one administrator and never resets credentials on 
   process.env.ADMIN_PASSWORD='ChangedEnvironmentPassword123!';assert.equal(await ensureAdministrator(db),false);
   assert.equal((await db.one('users',{id:original.id})).password_hash,original.password_hash);
  }finally{for(const [key,value] of Object.entries(saved)){if(value===undefined)delete process.env[key];else process.env[key]=value;}}
+});
+test('operator recovery resets only the selected active administrator and revokes sessions atomically',async()=>{
+ const u=await db.one('users',{email:'cloud-admin@example.org'});
+ await db.insert('sessions',{token_hash:hashToken('operator-session'),user_id:u.id,session_version:u.session_version,csrf_token:'csrf',expires_at:new Date(Date.now()+600000)});
+ await db.insert('resetTokens',{token_hash:hashToken('operator-reset'),user_id:u.id,expires_at:new Date(Date.now()+600000)});
+ await assert.rejects(resetAdministratorPassword(db,'storage@example.org','NewOperatorPassword123!'));
+ await assert.rejects(resetAdministratorPassword(db,u.email,'short'));
+ assert.equal(await db.count('sessions',{user_id:u.id}),1);
+ await resetAdministratorPassword(db,u.email,'NewOperatorPassword123!');
+ const updated=await db.one('users',{id:u.id});
+ assert.equal(await checkPassword('NewOperatorPassword123!',updated.password_hash),true);
+ assert.equal(updated.session_version,u.session_version+1);
+ assert.equal(await db.count('sessions',{user_id:u.id}),0);
+ assert.equal(await db.count('resetTokens',{user_id:u.id}),0);
+ assert.equal(await db.count('auditEvents',{entity_id:u.id,action:'administrator_password_reset'}),1);
+ assert.equal(await checkPassword('NewOperatorPassword123!',(await db.one('users',{id:uid})).password_hash),false);
 });

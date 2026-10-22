@@ -27,6 +27,17 @@ Without Stripe and SMTP configuration, card payments and email recovery/delivery
 
 ## Troubleshooting
 
+### Existing administrator password recovery
+
+ADMIN_PASSWORD only creates the first account; changing this environment variable does not reset existing credentials. After confirming the email, active status and database in Atlas, a database operator can run the following from this local project on Windows:
+
+```powershell
+npm run build
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Reset-WebsitePassword.ps1 -Database Cluster0 -Email kasanikarthikyadav2001@gmail.com
+```
+
+Use the actual database and account email if they differ. The tool prompts privately for the current Atlas URI, a new website password and confirmation. No secrets are stored in files or passed as process arguments. The account must already be an active administrator; the tool cannot create or promote accounts. The transaction updates its bcrypt hash, increments its session version, revokes its sessions and reset tokens, and writes an audit event. It does not modify the Atlas database user's password or other website users. Atlas must allow the operator's current IP. Sign in using the new website password after the success message; an application redeploy is unnecessary.
+
 - Build failed: inspect the first build error, confirm Node 24, repository root and the exact build command from render.yaml.
 - Startup database timeout: check Atlas username/password, encoded URI and the Render outbound IP ranges in the Atlas access list.
 - Administrator configuration rejected: set a valid ADMIN_EMAIL and a password matching the stated rules. Do not include the password in screenshots.
