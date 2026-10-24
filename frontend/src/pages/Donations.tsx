@@ -173,7 +173,7 @@ function DonationForm({
                   <option value="stripe">Secure card checkout</option>
                 )}
                 {config.dummyPaymentsEnabled && (
-                  <option value="dummy">Dummy checkout · no real payment</option>
+                  <option value="dummy">Card payment · test mode</option>
                 )}
                 {config.sandboxEnabled && (
                   <option value="sandbox">Sandbox simulation</option>
@@ -202,7 +202,7 @@ function DonationForm({
             <ShieldCheck size={20} />
             <span>
               {channel === "dummy"
-                ? "Demo checkout only. No card details are required and no money will be collected."
+                ? "Test-card checkout. Use only the supplied sample card details. No real charge will be made."
                 : channel === "sandbox"
                 ? "This is a simulation. No money will be collected."
                 : channel === "stripe"
@@ -266,7 +266,7 @@ export function Donations() {
       />
       {config.data?.dummyPaymentsEnabled && (
         <p className="sandbox-banner" role="status">
-          Dummy payments enabled · no money is collected. Simulated donations and receipts are labelled and excluded from fundraising totals.
+          Test payments enabled · no money is collected. Test contributions are labelled and excluded from fundraising totals.
         </p>
       )}
       {params.has("payment") && (

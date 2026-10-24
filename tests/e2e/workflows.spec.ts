@@ -28,19 +28,25 @@ for (const outcome of ['Successful payment', 'Declined payment', 'Cancelled chec
     await form.getByLabel('Amount (AUD)').fill('25.50');
     await form.getByLabel('Payment method').selectOption('dummy');
     await form.getByRole('button',{name:'Continue to checkout'}).click();
-    await expect(page.getByRole('heading',{name:'Dummy checkout',exact:true})).toBeVisible();
-    await page.getByRole('radio',{name:new RegExp(outcome)}).check();
-    await page.getByRole('button',{name:'Simulate payment',exact:true}).click();
-    const result=outcome==='Successful payment'?'Dummy payment successful':outcome==='Declined payment'?'Dummy payment declined':'Dummy checkout cancelled';
+    await expect(page.getByRole('heading',{name:'Complete your contribution',exact:true})).toBeVisible();
+    if(outcome==='Cancelled checkout')await page.getByRole('button',{name:'Cancel and return',exact:true}).click();
+    else {
+      await page.getByRole('button',{name:outcome==='Successful payment'?/Success/:/Decline/}).click();
+      const payment=page.waitForRequest(r=>r.url().endsWith('/checkout')&&r.method()==='POST');
+      await page.getByRole('button',{name:/Pay \$25.50 AUD/}).click();
+      const payload=(await payment).postDataJSON();
+      expect(Object.keys(payload)).toEqual(['outcome']);
+    }
+    const result=outcome==='Successful payment'?'Thank you for your support':outcome==='Declined payment'?'Your test payment was declined':'Checkout cancelled';
     await expect(page.getByRole('heading',{name:result,exact:true})).toBeVisible();
     await page.reload();
     await expect(page.getByRole('heading',{name:result,exact:true})).toBeVisible();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
     if(outcome==='Successful payment') {
       const download=page.waitForEvent('download');
-      await page.getByRole('button',{name:'Download simulation receipt'}).click();
+      await page.getByRole('button',{name:'Download test receipt'}).click();
       expect((await download).suggestedFilename()).toMatch(/\.pdf$/);
-    } else await expect(page.getByRole('button',{name:'Download simulation receipt'})).toHaveCount(0);
+    } else await expect(page.getByRole('button',{name:'Download test receipt'})).toHaveCount(0);
   });
 }
 test("administrator creates a person, records a donation and downloads a PDF", async ({

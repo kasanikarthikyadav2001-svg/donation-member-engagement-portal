@@ -41,7 +41,7 @@ export function DonationTable({
                   </span>
                   <div>
                     <strong>{d.donor_name}</strong>
-                    <small>{d.gateway === 'dummy' ? 'Dummy checkout' : title(d.channel)}</small>
+                    <small>{d.gateway === 'dummy' ? 'Card payment · test mode' : title(d.channel)}</small>
                   </div>
                 </div>
               </td>

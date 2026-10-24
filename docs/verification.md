@@ -1,5 +1,11 @@
 # MongoDB verification record
 
+## Test-card checkout redesign on 24 October 2026
+
+The redesigned interface provides a contribution summary, browser-only test-card fields, success/decline shortcuts, validation, payment processing feedback and persisted confirmation. Only the supplied sample card numbers and security code 123 are accepted. The API still accepts only an outcome, never card data. Production compilation succeeded and all 32 local unit/API/MongoDB tests passed. Two added unit tests execute the actual frontend validation helper and cover accepted test numbers, rejection of other numbers/security codes, expiry bounds, cardholder length and input formatting.
+
+Browser verification remains uncompleted: native Computer Use stopped because it could not establish the current browser URL with enough confidence. No visual or automated browser pass is claimed. The existing end-to-end cases were updated to exercise test-card presets and assert the payment request contains only the outcome.
+
 ## Dummy gateway verification on 24 October 2026
 
 Production build and frontend/backend TypeScript compilation passed. All 30 unit and MongoDB/API integration tests passed. Five additional gateway tests cover durable pending checkout, role/ownership and CSRF boundaries, duplicate creation/completion, simulated PDF receipts, rejection of real card fields, failed/cancelled states, disabled mode, and exclusion from dashboards, monthly/campaign summaries, reports and supporter totals. A built local instance started against an isolated seeded MongoDB database with dummy mode enabled.
