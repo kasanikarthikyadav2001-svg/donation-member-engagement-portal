@@ -84,8 +84,7 @@ npm audit --omit=dev --audit-level=high
 
 Unit and integration tests use an isolated real MongoDB replica set managed by the test runner. Set TEST_MONGODB_URI to use an existing test replica set instead. Each integration suite creates and deletes only its own uniquely named database. Browser tests start an isolated seeded replica set and application on port 4200; Playwright covers desktop and mobile workflows. CI follows the same sequence.
 
-For a runner that cannot launch child processes, start MongoDB separately, set TEST_MONGODB_URI, then run `node --test --test-isolation=none --test-concurrency=1 tests/unit.test.mjs tests/integration.test.mjs tests/mongodb.test.mjs`. Do not point test fixtures or load tools at production.
-
+For a runner that cannot launch child processes, start MongoDB separately, set TEST_MONGODB_URI, then run `node --test --test-isolation=none --test-concurrency=1 tests/unit.test.mjs tests/integration.test.mjs tests/mongodb.test.mjs`.
 ## GitHub
 
 Push source files, package manifests and the lockfile. `.gitignore` excludes credentials, database files, executable downloads, dependencies and build output. Never upload `.env` or enter secrets into a commit message. GitHub Actions runs compilation, MongoDB tests, browser checks and a production dependency audit. Repository hosting alone does not run Express or MongoDB; GitHub Pages cannot host this full backend.
@@ -104,4 +103,3 @@ Create the first administrator using ADMIN_EMAIL, ADMIN_PASSWORD and optional AD
 
 Enable Stripe only with STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET, and configure the signed webhook endpoint `/api/payments/webhook`. Only verified matching events authorise settlement. SMTP_HOST and sender credentials enable password recovery and receipt email; otherwise the interface reports these functions unavailable while PDF downloads remain usable. No real provider settlement or deliverability is implied by synthetic tests.
 
-Before release, verify Docker startup, HTTPS, provider test callbacks, SMTP delivery, backup restoration, performance and sponsor approval of naming, membership, privacy, retention and receipt wording. See `docs/verification.md` for executed checks and remaining limitations.
