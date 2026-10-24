@@ -17,6 +17,7 @@ import { AuthPage, RecoveryPage, Privacy } from "./pages/Auth";
 import { Dashboard } from "./pages/Dashboard";
 import { People } from "./pages/People";
 import { Donations } from "./pages/Donations";
+import { DummyCheckout } from "./pages/DummyCheckout";
 import { Surveys } from "./pages/Surveys";
 import { Reports } from "./pages/Reports";
 import { Settings } from "./pages/Settings";
@@ -96,6 +97,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 <Route element={<Layout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="donations" element={<Donations />} />
+                  <Route path="checkout/:id" element={<DummyCheckout />} />
                   <Route path="surveys" element={<Surveys />} />
                   <Route path="settings" element={<Settings />} />
                   <Route element={<StaffOnly />}>

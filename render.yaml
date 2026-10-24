@@ -23,6 +23,8 @@ services:
         sync: false
       - key: ALLOW_SANDBOX_PAYMENTS
         value: "false"
+      - key: PAYMENT_GATEWAY_MODE
+        value: dummy
       - key: TRUST_PROXY
         value: "1"
       - key: LOG_LEVEL

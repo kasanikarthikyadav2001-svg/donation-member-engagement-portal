@@ -5,7 +5,7 @@ import {randomBytes} from 'node:crypto';
 const require=createRequire(path.resolve('backend/package.json'));
 const {MongoMemoryReplSet}=require('mongodb-memory-server');
 const replica=await MongoMemoryReplSet.create({binary:{version:'7.0.24',downloadDir:path.resolve('backend/.mongo-binaries')},replSet:{name:'e2e-rs',count:1,storageEngine:'wiredTiger',ip:'127.0.0.1'}});
-const env={...process.env,NODE_ENV:'development',MONGODB_URI:replica.getUri(),MONGODB_DATABASE:'dmep_e2e',PORT:'4200',APP_URL:'http://127.0.0.1:4200',E2E_BASE_URL:'http://127.0.0.1:4200',DEMO_PASSWORD:randomBytes(18).toString('base64url')+'Aa1!',ALLOW_SANDBOX_PAYMENTS:'true',LOG_LEVEL:'warn'};
+const env={...process.env,NODE_ENV:'development',MONGODB_URI:replica.getUri(),MONGODB_DATABASE:'dmep_e2e',PORT:'4200',APP_URL:'http://127.0.0.1:4200',E2E_BASE_URL:'http://127.0.0.1:4200',DEMO_PASSWORD:randomBytes(18).toString('base64url')+'Aa1!',ALLOW_SANDBOX_PAYMENTS:'true',PAYMENT_GATEWAY_MODE:'dummy',LOG_LEVEL:'warn'};
 function run(args){return new Promise((resolve,reject)=>{const p=spawn(process.execPath,args,{env,stdio:'inherit'});p.on('error',reject);p.on('exit',code=>code===0?resolve():reject(new Error(`Process exited ${code}`)));});}
 let server;
 try{

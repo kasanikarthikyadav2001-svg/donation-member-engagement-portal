@@ -52,7 +52,7 @@ export const donationSchema = z
         (n) => Math.abs(n * 100 - Math.round(n * 100)) < 0.00001,
         "Use at most two decimal places",
       ),
-    channel: z.enum(["cash", "bank_transfer", "sandbox", "stripe"]),
+    channel: z.enum(["cash", "bank_transfer", "sandbox", "stripe", "dummy"]),
     campaign: z.string().trim().min(2).max(120).default("Community fund"),
     note: z.string().trim().max(1000).default(""),
     idempotencyKey: uuid,

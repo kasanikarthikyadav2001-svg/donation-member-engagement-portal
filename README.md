@@ -62,7 +62,17 @@ Unique and partial unique indexes protect email, linked account identity, reques
 
 Sessions store hashed opaque tokens and compare absolute expiry, account status and session version on every request. TTL cleanup does not grant access. Password recovery consumes tokens once. Roles, object ownership, CSRF and origin checks are enforced by the API. Email workers use atomic claims with recoverable ownership leases and up to five attempts; SMTP delivery remains at least once.
 
-## Tests
+## Dummy payment gateway
+
+The default `PAYMENT_GATEWAY_MODE=dummy` enables a clearly labelled demonstration checkout without Stripe keys. A normal donor chooses an amount and initiative, continues to `/checkout/:id`, and selects a simulated success, decline or cancellation. No card, expiry or CVV field is collected. The authenticated API validates ownership and saves the outcome in MongoDB. Repeated completion requests cannot issue duplicate receipts or change a completed outcome.
+
+Dummy donations store `channel=sandbox` and `gateway=dummy`. Successful simulations receive a PDF explicitly marked as a sandbox acknowledgement. Failed/cancelled simulations receive no success receipt. All dummy amounts are excluded from confirmed fundraising totals, campaign/month summaries and supporter contribution totals. They remain visible as simulation records in the ledger. This feature is for demonstration, not payment processing.
+
+Set `PAYMENT_GATEWAY_MODE=disabled` to disable dummy checkout. Set it to `stripe` and configure matching Stripe API/webhook secrets to use hosted provider checkout instead. The older `ALLOW_SANDBOX_PAYMENTS` switch governs a separate development-only immediate simulation; leave it false on Render. Dummy mode is independently available on the public testing deployment.
+
+For Render: push the latest source, set `PAYMENT_GATEWAY_MODE` to `dummy` in Environment, and deploy the latest commit. Keep the existing cloud start command. No database data deletion or new secret is needed.
+
+## Automated test commands
 
 ```powershell
 npm run build

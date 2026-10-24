@@ -17,6 +17,7 @@ export const config = {
   org: process.env.ORGANISATION_NAME || "Sydney Beacon",
   stripeKey: process.env.STRIPE_SECRET_KEY,
   stripeWebhook: process.env.STRIPE_WEBHOOK_SECRET,
+  paymentMode: process.env.PAYMENT_GATEWAY_MODE || 'dummy',
   allowSandbox: process.env.ALLOW_SANDBOX_PAYMENTS === "true",
   smtpHost: process.env.SMTP_HOST,
   smtpPort: Number(process.env.SMTP_PORT || 587),
@@ -24,6 +25,8 @@ export const config = {
   smtpPass: process.env.SMTP_PASSWORD,
   mailFrom: process.env.MAIL_FROM || "Beacon <receipts@example.org>",
 };
+if (!['dummy','stripe','disabled'].includes(config.paymentMode))
+  throw new Error('PAYMENT_GATEWAY_MODE must be dummy, stripe or disabled');
 if (
   config.production &&
   (!process.env.MONGODB_URI || !config.origin.startsWith("https://"))

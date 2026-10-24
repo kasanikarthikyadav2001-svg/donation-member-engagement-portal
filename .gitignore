@@ -8,6 +8,9 @@ backend/data-preview/
 playwright-report/
 test-results/
 coverage/
+LOCAL-LOGIN.txt
+.npm-cache/
+backend/.playwright-browsers/
 *.log
 
 backend/data-mongo/

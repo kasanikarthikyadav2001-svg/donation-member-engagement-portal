@@ -1,5 +1,6 @@
 import {Router} from 'express';
 import {randomUUID} from 'node:crypto';
+import {z} from 'zod';
 import Stripe from 'stripe';
 import {type Database,timestamps,literalSearch} from '../database/index.js';
 import {config} from '../config.js';
@@ -21,27 +22,56 @@ export function donationRoutes(db:Database) {
  });
  r.post('/',async(req,res)=>{
   const v=donationSchema.parse(req.body),amount=Math.round(v.amount*100);
+  const dummy=v.channel==='dummy',storedChannel=dummy?'sandbox':v.channel;
+  if(dummy&&config.paymentMode!=='dummy')throw new AppError(503,'Dummy payments are disabled.');
   if(!staff(req.user!)&&['cash','bank_transfer'].includes(v.channel))throw new AppError(403,'Only staff can record an offline donation.');
   if(v.channel==='sandbox'&&!config.allowSandbox)throw new AppError(400,'Sandbox simulation is disabled.');
-  if(v.channel==='stripe'&&(!stripe||!config.stripeWebhook))throw new AppError(503,'Online payments are unavailable. Please contact the club.');
+  if(v.channel==='stripe'&&(config.paymentMode!=='stripe'||!stripe||!config.stripeWebhook))throw new AppError(503,'Online payments are unavailable. Please contact the club.');
   let profile:any;
   const perform=()=>db.transaction(async tx=>{
    profile=await tx.one('profiles',{id:v.profileId});if(!profile||(!staff(req.user!)&&profile.user_id!==req.user!.id))throw notFound();if(profile.status!=='active')throw new AppError(400,'This profile is inactive.');
    const old=await tx.one('donations',{idempotency_key:v.idempotencyKey});
-   if(old){if(old.created_by!==req.user!.id||old.profile_id!==profile.id||old.amount_cents!==amount||old.channel!==v.channel||old.campaign!==v.campaign||old.note!==v.note)throw new AppError(409,'This request key was already used for another donation.');return old;}
+   if(old){if(old.created_by!==req.user!.id||old.profile_id!==profile.id||old.amount_cents!==amount||old.channel!==storedChannel||(old.gateway==='dummy')!==dummy||old.campaign!==v.campaign||old.note!==v.note)throw new AppError(409,'This request key was already used for another donation.');return old;}
    // Write the linked profile to conflict with simultaneous profile lifecycle changes.
    await tx.update('profiles',{id:profile.id},{$inc:{donation_version:1}});
-   const d={id:randomUUID(),profile_id:profile.id,amount_cents:amount,currency:'AUD',status:v.channel==='stripe'?'pending':'succeeded',channel:v.channel,campaign:v.campaign,note:v.note,idempotency_key:v.idempotencyKey,created_by:req.user!.id,...timestamps()};
-   await tx.insert('donations',d);if(v.channel!=='stripe')await issueReceipt(tx,d.id);await audit(tx,req.user!.id,'donation_created','donation',d.id,{channel:v.channel});return d;
+   const d={id:randomUUID(),profile_id:profile.id,amount_cents:amount,currency:'AUD',status:v.channel==='stripe'||dummy?'pending':'succeeded',channel:storedChannel,...(dummy?{gateway:'dummy'}:{}),campaign:v.campaign,note:v.note,idempotency_key:v.idempotencyKey,created_by:req.user!.id,...timestamps()};
+   await tx.insert('donations',d);if(v.channel!=='stripe'&&!dummy)await issueReceipt(tx,d.id);await audit(tx,req.user!.id,'donation_created','donation',d.id,{channel:storedChannel,...(dummy?{gateway:'dummy'}:{})});return d;
   });
   let result:any;
   try{result=await perform();}catch(e:any){if(e.code!==11000)throw e;result=await perform();}
   let checkoutUrl:string|undefined;
+  if(dummy&&result.status==='pending')checkoutUrl=`${config.origin}/checkout/${result.id}`;
   if(v.channel==='stripe'&&result.status==='pending') {
    const s=await stripe!.checkout.sessions.create({mode:'payment',customer_email:profile.email,line_items:[{price_data:{currency:'aud',product_data:{name:v.campaign},unit_amount:amount},quantity:1}],client_reference_id:result.id,metadata:{donationId:result.id},success_url:`${config.origin}/donations?payment=processing`,cancel_url:`${config.origin}/donations?payment=cancelled`},{idempotencyKey:result.id});
    await db.update('donations',{id:result.id},{$set:{stripe_session_id:s.id}});checkoutUrl=s.url||undefined;
   }
   const {receiptSnapshot,_id,...publicDonation}=result;res.status(201).json({donation:publicDonation,checkoutUrl});
+ });
+ const checkoutRecord=async(tx:Database,id:string,user:any)=>{
+  if(config.paymentMode!=='dummy')throw new AppError(503,'Dummy payments are disabled.');
+  const d=await tx.one('donations',{id:uuid.parse(id),gateway:'dummy',channel:'sandbox'});
+  if(!d)throw notFound();
+  const p=await tx.one('profiles',{id:d.profile_id});
+  if(!p||(!staff(user)&&p.user_id!==user.id))throw notFound();
+  return {d,p};
+ };
+ const publicCheckout=(d:any,p:any)=>({id:d.id,amount_cents:d.amount_cents,currency:d.currency,campaign:d.campaign,donor_name:p.name,status:d.status,gateway:'dummy',receipt_id:d.receiptSnapshot?.id,reference:d.receiptSnapshot?.reference});
+ r.get('/:id/checkout',async(req,res)=>{const {d,p}=await checkoutRecord(db,String(req.params.id),req.user);res.json(publicCheckout(d,p));});
+ r.post('/:id/checkout',async(req,res)=>{
+  const id=uuid.parse(req.params.id),{outcome}=z.object({outcome:z.enum(['succeeded','failed','cancelled'])}).strict().parse(req.body);
+  const result=await db.transaction(async tx=>{
+   const {d,p}=await checkoutRecord(tx,id,req.user);
+   if(d.status!=='pending'){
+    if(d.status!==outcome)throw new AppError(409,'This checkout is already complete. Start a new donation to test another outcome.');
+    return publicCheckout(d,p);
+   }
+   if(p.status!=='active')throw new AppError(409,'This supporter profile is inactive.');
+   await tx.update('profiles',{id:p.id},{$inc:{donation_version:1}});
+   await tx.update('donations',{id,status:'pending'},{$set:{status:outcome,updated_at:new Date(),simulated_at:new Date()}});
+   if(outcome==='succeeded')await issueReceipt(tx,id);
+   await audit(tx,req.user!.id,'dummy_payment_'+outcome,'donation',id,{simulation:true});
+   return publicCheckout(await tx.one('donations',{id}),p);
+  });res.json(result);
  });return r;
 }
 export function receiptRoutes(db:Database) {

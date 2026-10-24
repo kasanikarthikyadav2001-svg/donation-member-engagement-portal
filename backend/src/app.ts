@@ -98,7 +98,9 @@ export function createApp(db: Database) {
   app.get("/api/config", (_req, res) => {
     res.json({
       organisation: config.org,
-      paymentsEnabled: Boolean(stripe && config.stripeWebhook),
+        paymentsEnabled: config.paymentMode === 'stripe' && Boolean(stripe && config.stripeWebhook),
+        dummyPaymentsEnabled: config.paymentMode === 'dummy',
+        paymentMode: config.paymentMode,
       sandboxEnabled: config.allowSandbox,
       emailEnabled: emailEnabled(),
     });

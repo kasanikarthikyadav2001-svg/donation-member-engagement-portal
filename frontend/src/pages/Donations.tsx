@@ -30,7 +30,7 @@ const schema = z.object({
       (n) => Math.abs(n * 100 - Math.round(n * 100)) < 0.00001,
       "Use at most two decimal places",
     ),
-  channel: z.enum(["cash", "bank_transfer", "sandbox", "stripe"]),
+  channel: z.enum(["cash", "bank_transfer", "sandbox", "stripe", "dummy"]),
   campaign: z.string().trim().min(2).max(120),
   note: z.string().max(1000),
 });
@@ -67,7 +67,9 @@ function DonationForm({
       amount: 50,
       channel: staff
         ? "bank_transfer"
-        : config.paymentsEnabled
+        : config.dummyPaymentsEnabled
+          ? "dummy"
+          : config.paymentsEnabled
           ? "stripe"
           : "sandbox",
       campaign: "Community fund",
@@ -79,7 +81,7 @@ function DonationForm({
   }, [mine.data]);
   const channel = f.watch("channel");
   const unavailable =
-    !staff && !config.paymentsEnabled && !config.sandboxEnabled;
+    !staff && !config.paymentsEnabled && !config.sandboxEnabled && !config.dummyPaymentsEnabled;
   return (
     <Modal
       title={staff ? "Record a donation" : "Support your community"}
@@ -170,6 +172,9 @@ function DonationForm({
                 {config.paymentsEnabled && (
                   <option value="stripe">Secure card checkout</option>
                 )}
+                {config.dummyPaymentsEnabled && (
+                  <option value="dummy">Dummy checkout · no real payment</option>
+                )}
                 {config.sandboxEnabled && (
                   <option value="sandbox">Sandbox simulation</option>
                 )}
@@ -196,7 +201,9 @@ function DonationForm({
           <div className="info-note">
             <ShieldCheck size={20} />
             <span>
-              {channel === "sandbox"
+              {channel === "dummy"
+                ? "Demo checkout only. No card details are required and no money will be collected."
+                : channel === "sandbox"
                 ? "This is a simulation. No money will be collected."
                 : channel === "stripe"
                   ? "Card details are handled by Stripe and never stored in Beacon."
@@ -213,7 +220,7 @@ function DonationForm({
               Cancel
             </Button>
             <Button loading={f.formState.isSubmitting} type="submit">
-              {channel === "stripe"
+              {channel === "stripe" || channel === "dummy"
                 ? "Continue to checkout"
                 : channel === "sandbox"
                   ? "Simulate donation"
@@ -257,6 +264,11 @@ export function Donations() {
           </Button>
         }
       />
+      {config.data?.dummyPaymentsEnabled && (
+        <p className="sandbox-banner" role="status">
+          Dummy payments enabled · no money is collected. Simulated donations and receipts are labelled and excluded from fundraising totals.
+        </p>
+      )}
       {params.has("payment") && (
         <div className="info-note">
           <Wallet size={20} />

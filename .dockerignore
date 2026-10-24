@@ -13,4 +13,7 @@ backend/legacy-export*.json
 test-results
 playwright-report
 .git
+LOCAL-LOGIN.txt
+.npm-cache
+backend/.playwright-browsers
 *.zip

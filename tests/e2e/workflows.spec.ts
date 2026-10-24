@@ -18,6 +18,31 @@ async function nav(page: Page, name: string) {
   if (await mobile.isVisible()) await mobile.click();
   await page.getByRole("link", { name, exact: true }).click();
 }
+
+for (const outcome of ['Successful payment', 'Declined payment', 'Cancelled checkout']) {
+  test(`dummy checkout persists ${outcome.toLowerCase()} without real card input`, async ({page}) => {
+    await login(page,'donor@beacon.local');
+    await nav(page,'Donations');
+    await page.getByRole('button',{name:'Make a donation',exact:true}).click();
+    const form=page.getByRole('dialog');
+    await form.getByLabel('Amount (AUD)').fill('25.50');
+    await form.getByLabel('Payment method').selectOption('dummy');
+    await form.getByRole('button',{name:'Continue to checkout'}).click();
+    await expect(page.getByRole('heading',{name:'Dummy checkout',exact:true})).toBeVisible();
+    await page.getByRole('radio',{name:new RegExp(outcome)}).check();
+    await page.getByRole('button',{name:'Simulate payment',exact:true}).click();
+    const result=outcome==='Successful payment'?'Dummy payment successful':outcome==='Declined payment'?'Dummy payment declined':'Dummy checkout cancelled';
+    await expect(page.getByRole('heading',{name:result,exact:true})).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('heading',{name:result,exact:true})).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+    if(outcome==='Successful payment') {
+      const download=page.waitForEvent('download');
+      await page.getByRole('button',{name:'Download simulation receipt'}).click();
+      expect((await download).suggestedFilename()).toMatch(/\.pdf$/);
+    } else await expect(page.getByRole('button',{name:'Download simulation receipt'})).toHaveCount(0);
+  });
+}
 test("administrator creates a person, records a donation and downloads a PDF", async ({
   page,
 }) => {

@@ -2,6 +2,14 @@
 
 Base: /api. Responses are JSON except receipt PDF downloads. Authentication uses the dmep_session cookie. Login/me return csrfToken; authenticated POST/PATCH operations require X-CSRF-Token. Error shape: `{ "error": { "code": "VALIDATION", "message": "...", "fields": {} } }`. Common statuses: 401 unauthenticated, 403 unauthorised/CSRF, 404 unavailable record, 409 conflict, 422 invalid input, 429 rate limit, 503 unavailable integration.
 
+## Dummy checkout
+
+`GET /config` includes `paymentMode` and `dummyPaymentsEnabled`. In dummy mode, submit `POST /donations` with `channel: "dummy"`, the existing donation fields and a unique request key. The response contains a pending sandbox donation and its local `checkoutUrl`. No provider is contacted.
+
+`GET /donations/:id/checkout` returns the authorised dummy checkout summary. `POST /donations/:id/checkout` accepts only `{ "outcome": "succeeded" }`, `failed` or `cancelled`, with the normal cookie and CSRF requirements. No card fields are accepted. A repeated identical outcome returns the existing result; attempting another outcome after completion returns 409. Owner or authorised staff access applies. Disabling dummy mode returns 503 on both checkout routes and blocks new dummy donations.
+
+Successful completion atomically updates the donation, embeds one sandbox receipt and writes its audit event. Storage uses `channel: "sandbox"` with `gateway: "dummy"`, so all existing confirmed fundraising queries exclude it. These records are simulations and are not evidence of payment.
+
 | Method | Path | Purpose |
 |---|---|---|
 | GET | /health | Database readiness |

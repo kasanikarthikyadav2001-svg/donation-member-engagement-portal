@@ -3,6 +3,7 @@ import { Badge, Empty, Button } from "./ui";
 import { money, date, initials, title } from "../utils/format";
 import { downloadReceipt, send } from "../services/api";
 import { toast } from "sonner";
+import { Link } from 'react-router-dom';
 export function DonationTable({
   rows,
   emailEnabled = false,
@@ -40,7 +41,7 @@ export function DonationTable({
                   </span>
                   <div>
                     <strong>{d.donor_name}</strong>
-                    <small>{title(d.channel)}</small>
+                    <small>{d.gateway === 'dummy' ? 'Dummy checkout' : title(d.channel)}</small>
                   </div>
                 </div>
               </td>
@@ -78,6 +79,8 @@ export function DonationTable({
                       </button>
                     )}
                   </div>
+                ) : d.gateway === 'dummy' && d.status === 'pending' ? (
+                  <Link className="btn btn-secondary" to={`/checkout/${d.id}`}>Resume demo</Link>
                 ) : (
                   <span className="muted">Not issued</span>
                 )}

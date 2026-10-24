@@ -1,5 +1,11 @@
 # MongoDB verification record
 
+## Dummy gateway verification on 24 October 2026
+
+Production build and frontend/backend TypeScript compilation passed. All 30 unit and MongoDB/API integration tests passed. Five additional gateway tests cover durable pending checkout, role/ownership and CSRF boundaries, duplicate creation/completion, simulated PDF receipts, rejection of real card fields, failed/cancelled states, disabled mode, and exclusion from dashboards, monthly/campaign summaries, reports and supporter totals. A built local instance started against an isolated seeded MongoDB database with dummy mode enabled.
+
+Browser workflows for all three outcomes are supplied for desktop, tablet and mobile. Execution was blocked because the Windows test environment refused the browser downloader subprocess; the in-app browser also could not load its configuration. No visual or automated browser pass is claimed for the dummy checkout. Native browser review remains a deployment acceptance step.
+
 Verified locally on 22 October 2026 with Node.js 24.19.0 and a real MongoDB 7.0.24 single-node replica set.
 
 ## Passed
